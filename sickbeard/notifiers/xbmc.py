@@ -76,6 +76,7 @@ class XBMCNotifier:
 
         host - host/ip + port (foo:8080)
         '''
+        command['jsonrpc'] = '2.0'
 
         if not username:
             username = self._username()
@@ -101,6 +102,8 @@ class XBMCNotifier:
                 base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
                 authheader =  "Basic %s" % base64string
                 req.add_header("Authorization", authheader)
+
+            req.add_header('Content-type', 'application/json')
 
             logger.log(u"Contacting XBMC via url: " + url, logger.DEBUG)
             handle = urllib2.urlopen(req)
