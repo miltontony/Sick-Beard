@@ -214,7 +214,7 @@ class XBMCNotifier:
         else:
             logger.log(u"Do a full update as requested", logger.DEBUG)
             logger.log(u"XBMC Updating " + host, logger.DEBUG)
-            updateCommand = {'command': 'ExecBuiltIn', 'parameter': 'XBMC.updatelibrary(video)'}
+            updateCommand = {'method': 'VideoLibrary.Scan'}
             request = self._sendToXBMC(updateCommand, host)
 
             if not request:
