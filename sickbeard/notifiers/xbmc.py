@@ -20,6 +20,7 @@
 import urllib, urllib2
 import socket
 import base64
+import json
 import time, struct
 
 import sickbeard
@@ -87,33 +88,37 @@ class XBMCNotifier:
             if type(command[key]) == unicode:
                 command[key] = command[key].encode('utf-8')
 
-        enc_command = urllib.urlencode(command)
-        logger.log(u"Encoded command is " + enc_command, logger.DEBUG)
+        logger.log(u"Encoded command is %s" % command, logger.DEBUG)
         # Web server doesn't like POST, GET is the way to go
         url = 'http://%s/jsonrpc' % host
 
         try:
             # If we have a password, use authentication
-            req = urllib2.Request('POST', url)
-            req.add_data(urllib.urlencode(enc_command))
+            req = urllib2.Request(url, data=json.dumps(command))
 
             if password:
                 logger.log(u"Adding Password to XBMC url", logger.DEBUG)
                 base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
-                authheader =  "Basic %s" % base64string
+                authheader = "Basic %s" % base64string
                 req.add_header("Authorization", authheader)
 
             req.add_header('Content-type', 'application/json')
 
             logger.log(u"Contacting XBMC via url: " + url, logger.DEBUG)
+            logger.log(u"Contacting XBMC with command: %s" % command, logger.DEBUG)
+
             handle = urllib2.urlopen(req)
             response = handle.read().decode(sickbeard.SYS_ENCODING)
+
             logger.log(u"response: " + response, logger.DEBUG)
         except IOError, e:
             logger.log(u"Warning: Couldn't contact XBMC HTTP server at " + fixStupidEncodings(host) + ": " + ex(e))
             response = ''
+        except Exception, e:
+            logger.log(u"Error: Couldn't send request to XBMC HTTP server at " + fixStupidEncodings(host) + ": " + ex(e))
+            response = ''
 
-        return response
+        return 'OK' if response == '' else 'Failed'
 
     def _notifyXBMC(self, input, title="Sick Beard", host=None, username=None, password=None, force=False):
 
@@ -130,12 +135,10 @@ class XBMCNotifier:
 
         logger.log(u"Sending notification for " + input, logger.DEBUG)
 
-        fileString = title + "," + input
-
         result = ''
 
         for curHost in [x.strip() for x in host.split(",")]:
-            command = {'method': 'GUI.ShowNotification', 'title': 'Sick-Beard Notification', 'message': fileString}
+            command = {'method': 'GUI.ShowNotification', 'params': {'title': title, 'message': input}}
             logger.log(u"Sending notification to XBMC via host: " +
                     curHost + "username: " + username +
                     " password: " + password, logger.DEBUG)
