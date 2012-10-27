@@ -46,7 +46,14 @@ class XBMCNotifier:
             self._notifyXBMC(ep_name, common.notifyStrings[common.NOTIFY_DOWNLOAD])
 
     def test_notify(self, host, username, password):
-        return self._notifyXBMC("Testing XBMC notifications from Sick Beard", "Test Notification", host, username, password, force=True)
+        response = self._notifyXBMC("Testing XBMC notifications from Sick Beard", "Test Notification", host, username, password, force=True)
+        success = False
+        try:
+            success = all(json.loads(a['response'])['result'] == 'OK' for a in response)
+        except Exception, e:
+            print e
+
+        return success
 
     def update_library(self, show_name):
         if sickbeard.XBMC_UPDATE_LIBRARY:
@@ -78,6 +85,7 @@ class XBMCNotifier:
         host - host/ip + port (foo:8080)
         '''
         command['jsonrpc'] = '2.0'
+        command['id'] = 1
 
         if not username:
             username = self._username()
@@ -118,7 +126,7 @@ class XBMCNotifier:
             logger.log(u"Error: Couldn't send request to XBMC HTTP server at " + fixStupidEncodings(host) + ": " + ex(e))
             response = ''
 
-        return 'OK' if response == '' else 'Failed'
+        return response
 
     def _notifyXBMC(self, input, title="Sick Beard", host=None, username=None, password=None, force=False):
 
@@ -135,7 +143,7 @@ class XBMCNotifier:
 
         logger.log(u"Sending notification for " + input, logger.DEBUG)
 
-        result = ''
+        result = []
 
         for curHost in [x.strip() for x in host.split(",")]:
             command = {'method': 'GUI.ShowNotification', 'params': {'title': title, 'message': input}}
@@ -144,7 +152,7 @@ class XBMCNotifier:
                     " password: " + password, logger.DEBUG)
             if result:
                 result += ', '
-            result += curHost + ':' + self._sendToXBMC(command, curHost, username, password)
+            result.append({'host':curHost, 'response':self._sendToXBMC(command, curHost, username, password)})
 
         return result
 
@@ -162,55 +170,30 @@ class XBMCNotifier:
 
         # if we're doing per-show
         if showName:
-            pathSql = 'select path.strPath from path, tvshow, tvshowlinkpath where ' \
-                'tvshow.c00 = "%s" and tvshowlinkpath.idShow = tvshow.idShow ' \
-                'and tvshowlinkpath.idPath = path.idPath' % (showName)
-
             # Use this to get xml back for the path lookups
-            xmlCommand = {'command': 'SetResponseFormat(webheader;false;webfooter;false;header;<xml>;footer;</xml>;opentag;<tag>;closetag;</tag>;closefinaltag;false)'}
-            # Sql used to grab path(s)
-            sqlCommand = {'command': 'QueryVideoDatabase(%s)' % (pathSql)}
-            # Set output back to default
-            resetCommand = {'command': 'SetResponseFormat()'}
+            queryCommand = {'method': 'VideoLibrary.GetTVShows', 'params': {'properties': ['file']}}
 
             # Set xml response format, if this fails then don't bother with the rest
-            request = self._sendToXBMC(xmlCommand, host)
-            if not request:
+            r = self._sendToXBMC(queryCommand, host)
+            if not r:
                 return False
 
-            sqlXML = self._sendToXBMC(sqlCommand, host)
-            request = self._sendToXBMC(resetCommand, host)
+            response = json.loads(r)
 
-            if not sqlXML:
-                logger.log(u"Invalid response for " + showName + " on " + host, logger.DEBUG)
-                return False
+            #get show
+            shows = response['result']['tvshows']
 
-            encSqlXML = urllib.quote(sqlXML,':\\/<>')
-            try:
-                et = etree.fromstring(encSqlXML)
-            except SyntaxError, e:
-                logger.log("Unable to parse XML returned from XBMC: "+ex(e), logger.ERROR)
-                return False
+            show = next((x for x in shows if x['label'] == showName), None)
 
-            paths = et.findall('.//field')
-
-            if not paths:
-                logger.log(u"No valid paths found for " + showName + " on " + host, logger.DEBUG)
-                return False
-
-            for path in paths:
+            if show:
                 # Don't need it double-encoded, gawd this is dumb
-                unEncPath = urllib.unquote(path.text).decode(sickbeard.SYS_ENCODING)
+                unEncPath = urllib.unquote(show['file']).decode(sickbeard.SYS_ENCODING)
                 logger.log(u"XBMC Updating " + showName + " on " + host + " at " + unEncPath, logger.DEBUG)
-                updateCommand = {'command': 'ExecBuiltIn', 'parameter': 'XBMC.updatelibrary(video, %s)' % (unEncPath)}
+                updateCommand = {'method': 'VideoLibrary.Scan', 'params': {'directory': show['file']}}
                 request = self._sendToXBMC(updateCommand, host)
                 if not request:
                     logger.log(u"Update of show directory failed on " + showName + " on " + host + " at " + unEncPath, logger.ERROR)
                     return False
-                # Sleep for a few seconds just to be sure xbmc has a chance to finish
-                # each directory
-                if len(paths) > 1:
-                    time.sleep(5)
         else:
             logger.log(u"Do a full update as requested", logger.DEBUG)
             logger.log(u"XBMC Updating " + host, logger.DEBUG)
