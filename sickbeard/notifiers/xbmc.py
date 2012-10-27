@@ -70,36 +70,38 @@ class XBMCNotifier:
     def _sendToXBMC(self, command, host, username=None, password=None):
         '''
         Handles communication with XBMC servers
-    
+
         command - Dictionary of field/data pairs, encoded via urllib.urlencode and
         passed to /xbmcCmds/xbmcHttp
-    
+
         host - host/ip + port (foo:8080)
         '''
-    
+
         if not username:
             username = self._username()
         if not password:
             password = self._password()
-    
+
         for key in command:
             if type(command[key]) == unicode:
                 command[key] = command[key].encode('utf-8')
-    
+
         enc_command = urllib.urlencode(command)
         logger.log(u"Encoded command is " + enc_command, logger.DEBUG)
         # Web server doesn't like POST, GET is the way to go
-        url = 'http://%s/xbmcCmds/xbmcHttp/?%s' % (host, enc_command)
-    
+        url = 'http://%s/jsonrpc' % host
+
         try:
             # If we have a password, use authentication
-            req = urllib2.Request(url)
+            req = urllib2.Request('POST', url)
+            req.add_data(urllib.urlencode(enc_command))
+
             if password:
                 logger.log(u"Adding Password to XBMC url", logger.DEBUG)
                 base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
                 authheader =  "Basic %s" % base64string
                 req.add_header("Authorization", authheader)
-    
+
             logger.log(u"Contacting XBMC via url: " + url, logger.DEBUG)
             handle = urllib2.urlopen(req)
             response = handle.read().decode(sickbeard.SYS_ENCODING)
@@ -107,31 +109,33 @@ class XBMCNotifier:
         except IOError, e:
             logger.log(u"Warning: Couldn't contact XBMC HTTP server at " + fixStupidEncodings(host) + ": " + ex(e))
             response = ''
-    
+
         return response
 
     def _notifyXBMC(self, input, title="Sick Beard", host=None, username=None, password=None, force=False):
-    
+
         if not self._use_me() and not force:
             logger.log("Notification for XBMC not enabled, skipping this notification", logger.DEBUG)
             return False
-    
+
         if not host:
             host = self._hostname()
         if not username:
             username = self._username()
         if not password:
             password = self._password()
-    
+
         logger.log(u"Sending notification for " + input, logger.DEBUG)
-    
+
         fileString = title + "," + input
-    
+
         result = ''
-    
+
         for curHost in [x.strip() for x in host.split(",")]:
-            command = {'command': 'ExecBuiltIn', 'parameter': 'Notification(' +fileString + ')' }
-            logger.log(u"Sending notification to XBMC via host: "+ curHost +"username: "+ username + " password: " + password, logger.DEBUG)
+            command = {'method': 'GUI.ShowNotification', 'title': 'Sick-Beard Notification', 'message': fileString}
+            logger.log(u"Sending notification to XBMC via host: " +
+                    curHost + "username: " + username +
+                    " password: " + password, logger.DEBUG)
             if result:
                 result += ', '
             result += curHost + ':' + self._sendToXBMC(command, curHost, username, password)
@@ -139,55 +143,55 @@ class XBMCNotifier:
         return result
 
     def _update_library(self, host, showName=None):
-    
+
         if not self._use_me():
             logger.log("Notifications for XBMC not enabled, skipping library update", logger.DEBUG)
             return False
-    
+
         logger.log(u"Updating library in XBMC", logger.DEBUG)
-    
+
         if not host:
             logger.log('No host specified, no updates done', logger.DEBUG)
             return False
-    
+
         # if we're doing per-show
         if showName:
             pathSql = 'select path.strPath from path, tvshow, tvshowlinkpath where ' \
                 'tvshow.c00 = "%s" and tvshowlinkpath.idShow = tvshow.idShow ' \
                 'and tvshowlinkpath.idPath = path.idPath' % (showName)
-    
+
             # Use this to get xml back for the path lookups
             xmlCommand = {'command': 'SetResponseFormat(webheader;false;webfooter;false;header;<xml>;footer;</xml>;opentag;<tag>;closetag;</tag>;closefinaltag;false)'}
             # Sql used to grab path(s)
             sqlCommand = {'command': 'QueryVideoDatabase(%s)' % (pathSql)}
             # Set output back to default
             resetCommand = {'command': 'SetResponseFormat()'}
-    
+
             # Set xml response format, if this fails then don't bother with the rest
             request = self._sendToXBMC(xmlCommand, host)
             if not request:
                 return False
-    
+
             sqlXML = self._sendToXBMC(sqlCommand, host)
             request = self._sendToXBMC(resetCommand, host)
-    
+
             if not sqlXML:
                 logger.log(u"Invalid response for " + showName + " on " + host, logger.DEBUG)
                 return False
-    
+
             encSqlXML = urllib.quote(sqlXML,':\\/<>')
             try:
                 et = etree.fromstring(encSqlXML)
             except SyntaxError, e:
                 logger.log("Unable to parse XML returned from XBMC: "+ex(e), logger.ERROR)
                 return False
-    
+
             paths = et.findall('.//field')
-    
+
             if not paths:
                 logger.log(u"No valid paths found for " + showName + " on " + host, logger.DEBUG)
                 return False
-    
+
             for path in paths:
                 # Don't need it double-encoded, gawd this is dumb
                 unEncPath = urllib.unquote(path.text).decode(sickbeard.SYS_ENCODING)
@@ -206,11 +210,11 @@ class XBMCNotifier:
             logger.log(u"XBMC Updating " + host, logger.DEBUG)
             updateCommand = {'command': 'ExecBuiltIn', 'parameter': 'XBMC.updatelibrary(video)'}
             request = self._sendToXBMC(updateCommand, host)
-    
+
             if not request:
                 logger.log(u"Full update failed on " + host, logger.ERROR)
                 return False
-    
+
         return True
 
 # Wake function
