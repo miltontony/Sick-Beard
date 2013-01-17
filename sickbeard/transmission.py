@@ -138,7 +138,11 @@ def sendTORRENT(torrent):
 
     if not (path == ''):
         params['download-dir'] = path
-
+    
+    #check for cookies
+    if torrent.provider.token:
+        params['cookies'] = torrent.provider.token
+        
     try:
         tc = TransmissionRPC(host.hostname, host.port, sickbeard.TORRENT_USERNAME, sickbeard.TORRENT_PASSWORD)
         torrent = tc.add_torrent(torrent.url, arguments=params)
@@ -152,7 +156,7 @@ def sendTORRENT(torrent):
 def testAuthentication(host, username, password):
 
     try:
-        host = urlparse(sickbeard.TORRENT_HOST)
+        host = urlparse(host)
     except Exception, e:
         return False, u"Host properties are not filled in correctly, port is missing."
 
