@@ -48,8 +48,10 @@ class XBMCNotifier:
         Sends a request to the XBMC host using the JSON-RPC to determine if
         the legacy API or if the JSON-RPC API functions should be used.
 
-    def test_notify(self, host, username, password):
-        return self._notifyXBMC("Testing XBMC notifications from Sick Beard", "Test Notification", host, username, password, force=True)
+        Args:
+            host: XBMC webserver host:port
+            username: XBMC webserver username
+            password: XBMC webserver password
 
         Returns:
             Returns API number or False
@@ -72,30 +74,105 @@ class XBMCNotifier:
         checkCommand = '{"jsonrpc":"2.0","method":"JSONRPC.Version","id":1}'
         result = self._send_to_xbmc_json(checkCommand, host, username, password)
 
-    def _sendToXBMC(self, command, host, username=None, password=None):
-        '''
-        Handles communication with XBMC servers
-    
-        command - Dictionary of field/data pairs, encoded via urllib.urlencode and
-        passed to /xbmcCmds/xbmcHttp
-    
-        host - host/ip + port (foo:8080)
-        '''
-    
+        # revert back to default socket timeout
+        socket.setdefaulttimeout(sickbeard.SOCKET_TIMEOUT)
+
+        if result:
+            return result["result"]["version"]
+        else:
+            return False
+
+    def _notify_xbmc(self, message, title="Sick Beard", host=None, username=None, password=None, force=False):
+        """Internal wrapper for the notify_snatch and notify_download functions
+
+        Detects JSON-RPC version then branches the logic for either the JSON-RPC or legacy HTTP API methods.
+
+        Args:
+            message: Message body of the notice to send
+            title: Title of the notice to send
+            host: XBMC webserver host:port
+            username: XBMC webserver username
+            password: XBMC webserver password
+            force: Used for the Test method to override config saftey checks
+
+        Returns:
+            Returns a list results in the format of host:ip:result
+            The result will either be 'OK' or False, this is used to be parsed by the calling function.
+
+        """
+
+        # fill in omitted parameters
+        if not host:
+            host = sickbeard.XBMC_HOST
         if not username:
             username = sickbeard.XBMC_USERNAME
         if not password:
-            password = self._password()
-    
+            password = sickbeard.XBMC_PASSWORD
+
+        # suppress notifications if the notifier is disabled but the notify options are checked
+        if not sickbeard.USE_XBMC and not force:
+            logger.log("Notification for XBMC not enabled, skipping this notification", logger.DEBUG)
+            return False
+
+        result = ''
+        for curHost in [x.strip() for x in host.split(",")]:
+            logger.log(u"Sending XBMC notification to '" + curHost + "' - " + message, logger.MESSAGE)
+
+            xbmcapi = self._get_json_version(curHost, username, password)
+            if xbmcapi:
+                if (xbmcapi <= 4):
+                    logger.log(u"Detected XBMC version <= 11, using XBMC HTTP API", logger.DEBUG)
+                    command = {'command': 'ExecBuiltIn', 'parameter': 'Notification(' + title.encode("utf-8") + ',' + message.encode("utf-8") + ')'}
+                    notifyResult = self._send_to_xbmc(command, curHost, username, password)
+                    if notifyResult:
+                        result += curHost + ':' + str(notifyResult)
+                else:
+                    logger.log(u"Detected XBMC version >= 12, using XBMC JSON API", logger.DEBUG)
+                    command = '{"jsonrpc":"2.0","method":"GUI.ShowNotification","params":{"title":"%s","message":"%s"},"id":1}' % (title.encode("utf-8"), message.encode("utf-8"))
+                    notifyResult = self._send_to_xbmc_json(command, curHost, username, password)
+                    if notifyResult:
+                        result += curHost + ':' + notifyResult["result"].decode(sickbeard.SYS_ENCODING)
+            else:
+                logger.log(u"Failed to detect XBMC version for '" + curHost + "', check configuration and try again.", logger.DEBUG)
+
+        return result
+
+##############################################################################
+# Legacy HTTP API (pre XBMC 12) methods
+##############################################################################
+
+    def _send_to_xbmc(self, command, host=None, username=None, password=None):
+        """Handles communication to XBMC servers via HTTP API
+
+        Args:
+            command: Dictionary of field/data pairs, encoded via urllib and passed to the XBMC API via HTTP
+            host: XBMC webserver host:port
+            username: XBMC webserver username
+            password: XBMC webserver password
+
+        Returns:
+            Returns response.result for successful commands or False if there was an error
+
+        """
+
+        # fill in omitted parameters
+        if not username:
+            username = sickbeard.XBMC_USERNAME
+        if not password:
+            password = sickbeard.XBMC_PASSWORD
+
+        if not host:
+            logger.log(u'No XBMC host passed, aborting update', logger.DEBUG)
+            return False
+
         for key in command:
             if type(command[key]) == unicode:
                 command[key] = command[key].encode('utf-8')
-    
+
         enc_command = urllib.urlencode(command)
-        logger.log(u"Encoded command is " + enc_command, logger.DEBUG)
-        # Web server doesn't like POST, GET is the way to go
+        logger.log(u"XBMC encoded API command: " + enc_command, logger.DEBUG)
+
         url = 'http://%s/xbmcCmds/xbmcHttp/?%s' % (host, enc_command)
-    
         try:
             req = urllib2.Request(url)
             # if we have a password, use authentication
@@ -103,58 +180,42 @@ class XBMCNotifier:
                 base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
                 authheader = "Basic %s" % base64string
                 req.add_header("Authorization", authheader)
-    
-            logger.log(u"Contacting XBMC via url: " + url, logger.DEBUG)
-            handle = urllib2.urlopen(req)
-            response = handle.read().decode(sickbeard.SYS_ENCODING)
-            logger.log(u"response: " + response, logger.DEBUG)
-        except IOError, e:
-            logger.log(u"Warning: Couldn't contact XBMC HTTP server at " + fixStupidEncodings(host) + ": " + ex(e))
-            response = ''
-    
-        return response
+                logger.log(u"Contacting XBMC (with auth header) via url: " + fixStupidEncodings(url), logger.DEBUG)
+            else:
+                logger.log(u"Contacting XBMC via url: " + fixStupidEncodings(url), logger.DEBUG)
 
-    def _notifyXBMC(self, input, title="Sick Beard", host=None, username=None, password=None, force=False):
-    
-        if not self._use_me() and not force:
-            logger.log("Notification for XBMC not enabled, skipping this notification", logger.DEBUG)
+            response = urllib2.urlopen(req)
+            result = response.read().decode(sickbeard.SYS_ENCODING)
+            response.close()
+
+            logger.log(u"XBMC HTTP response: " + result.replace('\n', ''), logger.DEBUG)
+            return result
+
+        except (urllib2.URLError, IOError), e:
+            logger.log(u"Warning: Couldn't contact XBMC HTTP at " + fixStupidEncodings(url) + " " + ex(e), logger.WARNING)
             return False
-    
-        if not host:
-            host = self._hostname()
-        if not username:
-            username = self._username()
-        if not password:
-            password = self._password()
-    
-        logger.log(u"Sending notification for " + input, logger.DEBUG)
-    
-        fileString = title + "," + input
-    
-        result = ''
-    
-        for curHost in [x.strip() for x in host.split(",")]:
-            command = {'command': 'ExecBuiltIn', 'parameter': 'Notification(' +fileString + ')' }
-            logger.log(u"Sending notification to XBMC via host: "+ curHost +"username: "+ username + " password: " + password, logger.DEBUG)
-            if result:
-                result += ', '
-            result += curHost + ':' + self._sendToXBMC(command, curHost, username, password)
 
     def _update_library(self, host=None, showName=None):
         """Handles updating XBMC host via HTTP API
 
-    def _update_library(self, host, showName=None):
-    
-        if not self._use_me():
-            logger.log("Notifications for XBMC not enabled, skipping library update", logger.DEBUG)
-            return False
-    
-        logger.log(u"Updating library in XBMC", logger.DEBUG)
-    
+        Attempts to update the XBMC video library for a specific tv show if passed,
+        otherwise update the whole library if enabled.
+
+        Args:
+            host: XBMC webserver host:port
+            showName: Name of a TV show to specifically target the library update for
+
+        Returns:
+            Returns True or False
+
+        """
+
         if not host:
             logger.log(u'No XBMC host passed, aborting update', logger.DEBUG)
             return False
-    
+
+        logger.log(u"Updating XMBC library via HTTP method for host: " + host, logger.DEBUG)
+
         # if we're doing per-show
         if showName:
             logger.log(u"Updating library in XBMC via HTTP method for show " + showName, logger.DEBUG)
@@ -162,39 +223,39 @@ class XBMCNotifier:
             pathSql = 'select path.strPath from path, tvshow, tvshowlinkpath where ' \
                 'tvshow.c00 = "%s" and tvshowlinkpath.idShow = tvshow.idShow ' \
                 'and tvshowlinkpath.idPath = path.idPath' % (showName)
-    
-            # Use this to get xml back for the path lookups
+
+            # use this to get xml back for the path lookups
             xmlCommand = {'command': 'SetResponseFormat(webheader;false;webfooter;false;header;<xml>;footer;</xml>;opentag;<tag>;closetag;</tag>;closefinaltag;false)'}
-            # Sql used to grab path(s)
+            # sql used to grab path(s)
             sqlCommand = {'command': 'QueryVideoDatabase(%s)' % (pathSql)}
-            # Set output back to default
+            # set output back to default
             resetCommand = {'command': 'SetResponseFormat()'}
-    
-            # Set xml response format, if this fails then don't bother with the rest
-            request = self._sendToXBMC(xmlCommand, host)
+
+            # set xml response format, if this fails then don't bother with the rest
+            request = self._send_to_xbmc(xmlCommand, host)
             if not request:
                 return False
-    
-            sqlXML = self._sendToXBMC(sqlCommand, host)
-            request = self._sendToXBMC(resetCommand, host)
-    
+
+            sqlXML = self._send_to_xbmc(sqlCommand, host)
+            request = self._send_to_xbmc(resetCommand, host)
+
             if not sqlXML:
                 logger.log(u"Invalid response for " + showName + " on " + host, logger.DEBUG)
                 return False
-    
-            encSqlXML = urllib.quote(sqlXML,':\\/<>')
+
+            encSqlXML = urllib.quote(sqlXML, ':\\/<>')
             try:
                 et = etree.fromstring(encSqlXML)
             except SyntaxError, e:
-                logger.log("Unable to parse XML returned from XBMC: "+ex(e), logger.ERROR)
+                logger.log(u"Unable to parse XML returned from XBMC: " + ex(e), logger.ERROR)
                 return False
-    
+
             paths = et.findall('.//field')
-    
+
             if not paths:
                 logger.log(u"No valid paths found for " + showName + " on " + host, logger.DEBUG)
                 return False
-    
+
             for path in paths:
                 # Don't need it double-encoded, gawd this is dumb
                 unEncPath = urllib.unquote(path.text).decode(sickbeard.SYS_ENCODING)
@@ -204,16 +265,15 @@ class XBMCNotifier:
                 if not request:
                     logger.log(u"Update of show directory failed on " + showName + " on " + host + " at " + unEncPath, logger.ERROR)
                     return False
-                # Sleep for a few seconds just to be sure xbmc has a chance to finish
-                # each directory
+                # sleep for a few seconds just to be sure xbmc has a chance to finish each directory
                 if len(paths) > 1:
                     time.sleep(5)
         # do a full update if requested
         else:
             logger.log(u"Doing Full Library XBMC update on host: " + host, logger.DEBUG)
-            updateCommand = {'method': 'VideoLibrary.Scan'}
-            request = self._sendToXBMC(updateCommand, host)
-    
+            updateCommand = {'command': 'ExecBuiltIn', 'parameter': 'XBMC.updatelibrary(video)'}
+            request = self._send_to_xbmc(updateCommand, host)
+
             if not request:
                 logger.log(u"XBMC Full Library update failed on: " + host, logger.ERROR)
                 return False
