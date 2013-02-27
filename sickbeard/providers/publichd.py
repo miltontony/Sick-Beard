@@ -35,22 +35,22 @@ from sickbeard.common import Overview
 from sickbeard.exceptions import ex
 from sickbeard import encodingKludge as ek
 
-class TorrentLeechProvider(generic.TorrentProvider):
+class PublicHDProvider(generic.TorrentProvider):
 
     def __init__(self):
 
-        generic.TorrentProvider.__init__(self, "TorrentLeech")
+        generic.TorrentProvider.__init__(self, "PublicHD")
         
         self.supportsBacklog = True
-        self.cache = TorrentLeechCache(self)
+        self.cache = PublicHDCache(self)
         self.token = None
-        self.url = 'http://www.torrentleech.org/'
+        self.url = 'http://publichd.se/'
         
     def isEnabled(self):
-        return sickbeard.TORRENTLEECH
+        return sickbeard.PUBLICHD
         
     def imageName(self):
-        return 'torrentleech.png'
+        return 'publichd.png'
     
     def getQuality(self, item):
         
@@ -59,17 +59,17 @@ class TorrentLeechProvider(generic.TorrentProvider):
 
     def _get_airbydate_season_range(self, season):
         
-            if season == None:
-                return ()
+        if season == None:
+            return ()
         
-            year, month = map(int, season.split('-'))
-            min_date = datetime.date(year, month, 1)
-            if month == 12:
-                max_date = datetime.date(year, month, 31)
-            else:    
-                max_date = datetime.date(year, month+1, 1) -  datetime.timedelta(days=1)
+        year, month = map(int, season.split('-'))
+        min_date = datetime.date(year, month, 1)
+        if month == 12:
+            max_date = datetime.date(year, month, 31)
+        else:    
+            max_date = datetime.date(year, month+1, 1) -  datetime.timedelta(days=1)
 
-            return (min_date, max_date)    
+        return (min_date, max_date)    
       
     def _get_season_search_strings(self, show, season=None):
     
@@ -130,14 +130,30 @@ class TorrentLeechProvider(generic.TorrentProvider):
         return search_string
 
     def _doSearch(self, search_params, show=None):
-        baseUrl = self.url + "torrents/browse/index/query/%s/categories/2,26,27,32"
+        baseUrl = self.url + "index.php?"
 
-        searchUrl = baseUrl % search_params
-        #logger.log(u"Search string: " + searchUrl) #, logger.DEBUG)
-                
+        searchUrl = ''
+        data = []
+        for index in [1,2,3,4,5]:
+            searchUrl = baseUrl + urllib.urlencode({
+                'page': 'torrents',    
+                'search': search_params,    
+                'active': '0',    
+                'category': '2;5;8;9;20;7;24;14;23',    
+                'order': '5',    
+                'by': '2',    
+                'pages': str(index)   
+            })
 
-        logger.log(u"Search string: " + searchUrl, logger.DEBUG)
-        return self.parseResults(searchUrl)
+            newItems = self.parseResults(searchUrl)
+            data = data + newItems
+            #logger.log(str(len(newItems)) + " - " + str(len(data)))
+            if len(newItems) < 30:
+                break;
+        
+        logger.log(provider.name + u" found " + str(len(data)) + " results at " + searchUrl, logger.DEBUG)
+
+        return data
     
     def _get_title_and_url(self, item):
         return item
@@ -148,105 +164,28 @@ class TorrentLeechProvider(generic.TorrentProvider):
         if data:
             allItems = re.findall("<a\\s(?:[^\\s>]*?\\s)*?href=\"(?:mailto:)?(.*?)\".*?>(.+?)</a>", data)
             for url, title in allItems:
-                if url and url.startswith("/torrent/") and url.count("#") == 0:
+                if url and url.startswith("index.php?page=torrent-details&amp;id="):
                     url = self.url + url
-                    url = url.replace("//torrent/", "/download/") + "/" + title.replace(" ", ".") + ".torrent"
+                    url = url.replace("index.php?page=torrent-details&amp;id=", "download.php?id=") + "&f=" + title.replace(" ", ".") + ".torrent"
+                    #logger.log(title + " - " + url)
                     results.append((title, url))
         else:
             logger.log("Nothing found for " + searchUrl, logger.DEBUG)
-            
         return results
 
 
-    def getURL(self, url, headers=None):
-
-        self.doLogin()
-        if not headers:
-            headers = []
-        headers.append(('Cookie', self.token))
-
-        result = None
-        try:
-            result = helpers.getURL(url, headers)
-            if result.count("<title>Login :: TorrentLeech.org</title>") > 0:
-                #if session has expired, just try once more.
-                logger.log(u"Session expired loading "+self.name+" URL: " + url +"\nLet's login again.", logger.DEBUG)
-                self.token = None
-                self.getURL(url, headers)
-        except (urllib2.HTTPError, IOError, Exception), e:
-            self.token = None
-            logger.log(u"Error loading "+self.name+" URL: " + str(sys.exc_info()) + " - " + ex(e), logger.ERROR)
-            return None
-
-        return result
-    
-    def doLogin(self):
-        if not self.token:
-            login_url = self.url + "user/account/login"
-            #headers = {
-            #    'User-Agent': helpers.USER_AGENT,
-            #    'Referer': login_url,
-            #    'Origin': self.url,
-            #    'Accept': 'text/html',
-            #    'Accept-Encoding': '', #'gzip,deflate',
-            #    'Content-type': 'application/x-www-form-urlencoded'
-            #}
-            data = {
-                'username': sickbeard.TORRENTLEECH_USERNAME,
-                'password': sickbeard.TORRENTLEECH_PASSWORD,
-                'remember_me': 'on',
-                'login': 'submit'
-            }
-    
-            cookies = cookielib.CookieJar()
-            opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookies))
-            urllib2.install_opener(opener)
-            #request = urllib2.Request(login_url, urllib.urlencode(data), headers) 
-            response = opener.open(login_url, urllib.urlencode(data))
-            result = response.read()
-
-            
-            if result == None or result.count("Invalid Username/password") > 0 or result.count("<title>Login :: TorrentLeech.org</title>") > 0:
-                response.close()
-                raise Exception("Invalid username or password for " + self.name + ". Check your settings.") 
-             
-            #cookies = response.info().getheaders("set-cookie")
-            phpsessid = ''
-            member_id = ''
-            pass_hash = ''
-            tluid = ''
-            tlpass = ''
-            for cookie in cookies:
-                if cookie.name == "PHPSESSID" and not cookie.value == "deleted": 
-                    phpsessid = "PHPSESSID=" + cookie.value  + ";"
-                if cookie.name == "member_id" and not cookie.value == "deleted": 
-                    member_id = "member_id=" + cookie.value  + ";"
-                if cookie.name == "pass_hash" and not cookie.value == "deleted": 
-                    pass_hash = "pass_hash=" + cookie.value  + ";"
-                if cookie.name == "tluid" and not cookie.value == "deleted": 
-                    tluid = "tluid=" + cookie.value  + ";"
-                if cookie.name == "tlpass" and not cookie.value == "deleted": 
-                    tlpass = "tlpass=" + cookie.value  + ";"
-            self.token = "%s%s%s%s%s" % (phpsessid, member_id, pass_hash, tluid, tlpass)
-            logger.log("TorrentLeech session: " + self.token, logger.DEBUG)
-            logger.log("TorrentLeech successfully logged user '%s' in." % sickbeard.TORRENTLEECH_USERNAME)
-            response.close()
-        
-
-class TorrentLeechCache(tvcache.TVCache):
+class PublicHDCache(tvcache.TVCache):
 
     def __init__(self, provider):
 
         tvcache.TVCache.__init__(self, provider)
 
-        self.url = "torrents/browse/index/categories/2,26,27,32"
+        self.url = "index.php?page=torrents&active=0&category=2;5;8;9;20;7;24;14;23&order=3&by=2&pages="
         # only poll TorrentLeech every 15 minutes max
         self.minTime = 15
 
     def _getRSSData(self):
         url = provider.url + self.url
-        logger.log(u"TorrentLeech cache update URL: " + url, logger.DEBUG)
-        data = provider.parseResults(url)
         
         rss = "<rss xmlns:atom=\"http://www.w3.org/2005/Atom\" version=\"2.0\">" + \
 "<channel>" + \
@@ -256,14 +195,21 @@ class TorrentLeechCache(tvcache.TVCache):
 "<language>en-us</language>" + \
 "<atom:link href=\"" + provider.url + "\" rel=\"self\" type=\"application/rss+xml\"/>"
 
-        for title, url in data:
-            rss = rss + \
+        logger.log(provider.name + u" cache update URL: " + url, logger.DEBUG)
+        for index in [1,2,3,4,5]:
+            data = provider.parseResults(url + str(index))
+                
+            for title, url in data:
+                rss = rss + \
                     "<item>" + \
-                    "<title>" + title + "</title>" + \
-                    "<link>"+ url + "</link>" + \
+                    "   <title>" + title + "</title>" + \
+                    "   <link>"+ url.replace("&", "&amp;") + "</link>" + \
                     "</item>"
+            if len(data) <30:
+                break;
+                    
         rss = rss + "</channel></rss>"
-        
+
         return rss
         
-provider = TorrentLeechProvider()
+provider = PublicHDProvider()

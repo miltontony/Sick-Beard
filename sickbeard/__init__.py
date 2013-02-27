@@ -31,7 +31,7 @@ from threading import Lock
 # apparently py2exe won't build these unless they're imported somewhere
 from sickbeard import providers, metadata
 from providers import ezrss, tvtorrents, btn, nzbsrus, newznab, womble
-from providers import kickass, torrentz, dtt, torrentleech, thepiratebay
+from providers import kickass, torrentz, dtt, torrentleech, thepiratebay, publichd, torrentday
 from sickbeard.config import CheckSection, check_setting_int, check_setting_str, ConfigMigrator
 
 from sickbeard import searchCurrent, searchBacklog, showUpdater, versionChecker, properFinder, autoPostProcesser
@@ -67,6 +67,7 @@ CREATEPID = False
 PIDFILE = ''
 
 DAEMON = None
+NO_RESIZE = False
 
 backlogSearchScheduler = None
 currentSearchScheduler = None
@@ -176,6 +177,14 @@ TORRENTZ_VERIFIED = False
 TORRENTLEECH = False
 TORRENTLEECH_USERNAME = None
 TORRENTLEECH_PASSWORD = None
+
+TORRENTDAY = False
+TORRENTDAY_USERNAME = None
+TORRENTDAY_PASSWORD = None
+TORRENTDAY_UID =None
+TORRENTDAY_RSSHASH = None
+
+PUBLICHD = False
 
 BTN = False
 BTN_API_KEY = None
@@ -346,6 +355,8 @@ def initialize(consoleLogging=True):
                 showUpdateScheduler, __INITIALIZED__, LAUNCH_BROWSER, showList, loadingShowList, \
                 KICKASS, TORRENTZ, TORRENTZ_VERIFIED, \
                 TORRENTLEECH, TORRENTLEECH_USERNAME, TORRENTLEECH_PASSWORD, \
+                TORRENTDAY, TORRENTDAY_USERNAME, TORRENTDAY_PASSWORD, TORRENTDAY_RSSHASH,TORRENTDAY_UID,\
+                PUBLICHD, \
                 NZBS, NZBS_UID, NZBS_HASH, EZRSS, DTT, DTT_NORAR, DTT_SINGLE, THEPIRATEBAY, THEPIRATEBAY_TRUSTED, THEPIRATEBAY_PROXY, THEPIRATEBAY_PROXY_URL, TVTORRENTS, TVTORRENTS_DIGEST, TVTORRENTS_HASH, BTN, BTN_API_KEY, TORRENT_DIR, USENET_RETENTION, SOCKET_TIMEOUT, \
                 SEARCH_FREQUENCY, DEFAULT_SEARCH_FREQUENCY, BACKLOG_SEARCH_FREQUENCY, \
                 QUALITY_DEFAULT, FLATTEN_FOLDERS_DEFAULT, STATUS_DEFAULT, \
@@ -503,7 +514,15 @@ def initialize(consoleLogging=True):
 
         TORRENTLEECH = bool(check_setting_int(CFG, 'TORRENTLEECH', 'torrentleech', 0))    
         TORRENTLEECH_USERNAME = check_setting_str(CFG, 'TORRENTLEECH', 'torrentleech_username', '')   
-        TORRENTLEECH_PASSWORD = check_setting_str(CFG, 'TORRENTLEECH', 'torrentleech_password', '')   
+        TORRENTLEECH_PASSWORD = check_setting_str(CFG, 'TORRENTLEECH', 'torrentleech_password', '')
+        
+        TORRENTDAY = bool(check_setting_int(CFG, 'TORRENTDAY', 'torrentday', 0))    
+        TORRENTDAY_USERNAME = check_setting_str(CFG, 'TORRENTDAY', 'torrentday_username', '')   
+        TORRENTDAY_PASSWORD = check_setting_str(CFG, 'TORRENTDAY', 'torrentday_password', '')
+        TORRENTDAY_UID = check_setting_str(CFG, 'TORRENTDAY', 'torrentday_uid', '') 
+        TORRENTDAY_RSSHASH = check_setting_str(CFG, 'TORRENTDAY', 'torrentday_rsshash', '') 
+
+        PUBLICHD = bool(check_setting_int(CFG, 'PUBLICHD', 'publichd', 0))    
 
         GIT_PATH = check_setting_str(CFG, 'General', 'git_path', '')
         IGNORE_WORDS = check_setting_str(CFG, 'General', 'ignore_words', IGNORE_WORDS)
@@ -1079,6 +1098,16 @@ def save_config():
     new_config['TORRENTLEECH']['torrentleech'] = int(TORRENTLEECH)
     new_config['TORRENTLEECH']['torrentleech_username'] = TORRENTLEECH_USERNAME
     new_config['TORRENTLEECH']['torrentleech_password'] = TORRENTLEECH_PASSWORD
+
+    new_config['TORRENTDAY'] = {}
+    new_config['TORRENTDAY']['torrentday'] = int(TORRENTDAY)
+    new_config['TORRENTDAY']['torrentday_username'] = TORRENTDAY_USERNAME
+    new_config['TORRENTDAY']['torrentday_password'] = TORRENTDAY_PASSWORD
+    new_config['TORRENTDAY']['torrentday_rsshash'] = TORRENTDAY_RSSHASH
+    new_config['TORRENTDAY']['torrentday_uid'] = TORRENTDAY_UID
+
+    new_config['PUBLICHD'] = {}
+    new_config['PUBLICHD']['publichd'] = int(PUBLICHD)
     
     new_config['THEPIRATEBAY'] = {}
     new_config['THEPIRATEBAY']['thepiratebay'] = int(THEPIRATEBAY)
