@@ -447,7 +447,7 @@ def initialize(consoleLogging=True):
         if CACHE_DIR:
             TVDB_API_PARMS['cache'] = os.path.join(CACHE_DIR, 'tvdb')
 
-        TVDB_BASE_URL = 'http://www.thetvdb.com/api/' + TVDB_API_KEY
+        TVDB_BASE_URL = 'http://thetvdb.com/api/' + TVDB_API_KEY
 
         QUALITY_DEFAULT = check_setting_int(CFG, 'General', 'quality_default', SD)
         STATUS_DEFAULT = check_setting_int(CFG, 'General', 'status_default', SKIPPED)
@@ -468,7 +468,7 @@ def initialize(consoleLogging=True):
         NZB_METHOD = check_setting_str(CFG, 'General', 'nzb_method', 'blackhole')
         if NZB_METHOD not in ('blackhole', 'sabnzbd', 'nzbget'):
             NZB_METHOD = 'blackhole'
-        
+
         TORRENT_METHOD = check_setting_str(CFG, 'General', 'torrent_method', 'blackhole')
         if TORRENT_METHOD not in ('blackhole', 'utorrent', 'transmission', 'downloadstation'):
             TORRENT_METHOD = 'blackhole'
@@ -490,39 +490,39 @@ def initialize(consoleLogging=True):
         if not EZRSS:
             CheckSection(CFG, 'EZRSS')
             EZRSS = bool(check_setting_int(CFG, 'EZRSS', 'ezrss', 0))
-        
+
         DTT = bool(check_setting_int(CFG, 'DTT', 'dtt', 0))
         DTT_NORAR = bool(check_setting_int(CFG, 'DTT', 'dtt_norar', 0))
         DTT_SINGLE = bool(check_setting_int(CFG, 'DTT', 'dtt_single', 0))
-            
-        TVTORRENTS = bool(check_setting_int(CFG, 'TVTORRENTS', 'tvtorrents', 0))    
+
+        TVTORRENTS = bool(check_setting_int(CFG, 'TVTORRENTS', 'tvtorrents', 0))
         TVTORRENTS_DIGEST = check_setting_str(CFG, 'TVTORRENTS', 'tvtorrents_digest', '')
         TVTORRENTS_HASH = check_setting_str(CFG, 'TVTORRENTS', 'tvtorrents_hash', '')
 
-        THEPIRATEBAY = bool(check_setting_int(CFG, 'THEPIRATEBAY', 'thepiratebay', 0)) 
-        THEPIRATEBAY_TRUSTED = bool(check_setting_int(CFG, 'THEPIRATEBAY', 'thepiratebay_trusted', 0))         
+        THEPIRATEBAY = bool(check_setting_int(CFG, 'THEPIRATEBAY', 'thepiratebay', 0))
+        THEPIRATEBAY_TRUSTED = bool(check_setting_int(CFG, 'THEPIRATEBAY', 'thepiratebay_trusted', 0))
         THEPIRATEBAY_PROXY = bool(check_setting_int(CFG, 'THEPIRATEBAY', 'thepiratebay_proxy', 0))
         THEPIRATEBAY_PROXY_URL = check_setting_str(CFG, 'THEPIRATEBAY', 'thepiratebay_proxy_url', '')
 
-        BTN = bool(check_setting_int(CFG, 'BTN', 'btn', 0))    
+        BTN = bool(check_setting_int(CFG, 'BTN', 'btn', 0))
         BTN_API_KEY = check_setting_str(CFG, 'BTN', 'btn_api_key', '')
 
         KICKASS = bool(check_setting_int(CFG, 'KICKASS', 'kickass', 0))
-        
-        TORRENTZ = bool(check_setting_int(CFG, 'TORRENTZ', 'torrentz', 0))    
-        TORRENTZ_VERIFIED = bool(check_setting_int(CFG, 'TORRENTZ', 'torrentz_verified', 0))    
 
-        TORRENTLEECH = bool(check_setting_int(CFG, 'TORRENTLEECH', 'torrentleech', 0))    
-        TORRENTLEECH_USERNAME = check_setting_str(CFG, 'TORRENTLEECH', 'torrentleech_username', '')   
+        TORRENTZ = bool(check_setting_int(CFG, 'TORRENTZ', 'torrentz', 0))
+        TORRENTZ_VERIFIED = bool(check_setting_int(CFG, 'TORRENTZ', 'torrentz_verified', 0))
+
+        TORRENTLEECH = bool(check_setting_int(CFG, 'TORRENTLEECH', 'torrentleech', 0))
+        TORRENTLEECH_USERNAME = check_setting_str(CFG, 'TORRENTLEECH', 'torrentleech_username', '')
         TORRENTLEECH_PASSWORD = check_setting_str(CFG, 'TORRENTLEECH', 'torrentleech_password', '')
-        
-        TORRENTDAY = bool(check_setting_int(CFG, 'TORRENTDAY', 'torrentday', 0))    
-        TORRENTDAY_USERNAME = check_setting_str(CFG, 'TORRENTDAY', 'torrentday_username', '')   
-        TORRENTDAY_PASSWORD = check_setting_str(CFG, 'TORRENTDAY', 'torrentday_password', '')
-        TORRENTDAY_UID = check_setting_str(CFG, 'TORRENTDAY', 'torrentday_uid', '') 
-        TORRENTDAY_RSSHASH = check_setting_str(CFG, 'TORRENTDAY', 'torrentday_rsshash', '') 
 
-        PUBLICHD = bool(check_setting_int(CFG, 'PUBLICHD', 'publichd', 0))    
+        TORRENTDAY = bool(check_setting_int(CFG, 'TORRENTDAY', 'torrentday', 0))
+        TORRENTDAY_USERNAME = check_setting_str(CFG, 'TORRENTDAY', 'torrentday_username', '')
+        TORRENTDAY_PASSWORD = check_setting_str(CFG, 'TORRENTDAY', 'torrentday_password', '')
+        TORRENTDAY_UID = check_setting_str(CFG, 'TORRENTDAY', 'torrentday_uid', '')
+        TORRENTDAY_RSSHASH = check_setting_str(CFG, 'TORRENTDAY', 'torrentday_rsshash', '')
+
+        PUBLICHD = bool(check_setting_int(CFG, 'PUBLICHD', 'publichd', 0))
 
         GIT_PATH = check_setting_str(CFG, 'General', 'git_path', '')
         IGNORE_WORDS = check_setting_str(CFG, 'General', 'ignore_words', IGNORE_WORDS)
@@ -644,13 +644,13 @@ def initialize(consoleLogging=True):
         NZBGET_PASSWORD = check_setting_str(CFG, 'NZBget', 'nzbget_password', 'tegbzn6789')
         NZBGET_CATEGORY = check_setting_str(CFG, 'NZBget', 'nzbget_category', 'tv')
         NZBGET_HOST = check_setting_str(CFG, 'NZBget', 'nzbget_host', '')
-        
+
         TORRENT_USERNAME = check_setting_str(CFG, 'TORRENT', 'torrent_username', '')
         TORRENT_PASSWORD = check_setting_str(CFG, 'TORRENT', 'torrent_password', '')
         TORRENT_HOST = check_setting_str(CFG, 'TORRENT', 'torrent_host', '')
         TORRENT_PATH = check_setting_str(CFG, 'TORRENT', 'torrent_path', '')
         TORRENT_RATIO = check_setting_str(CFG, 'TORRENT', 'torrent_ratio', '')
-        TORRENT_PAUSED = bool(check_setting_int(CFG, 'TORRENT', 'torrent_paused', 0)) 
+        TORRENT_PAUSED = bool(check_setting_int(CFG, 'TORRENT', 'torrent_paused', 0))
 
         CheckSection(CFG, 'XBMC')
         USE_XBMC = bool(check_setting_int(CFG, 'XBMC', 'use_xbmc', 0))
@@ -1093,7 +1093,7 @@ def save_config():
     new_config['TORRENTZ'] = {}
     new_config['TORRENTZ']['torrentz'] = int(TORRENTZ)
     new_config['TORRENTZ']['torrentz_verified'] = int(TORRENTZ_VERIFIED)
- 
+
     new_config['TORRENTLEECH'] = {}
     new_config['TORRENTLEECH']['torrentleech'] = int(TORRENTLEECH)
     new_config['TORRENTLEECH']['torrentleech_username'] = TORRENTLEECH_USERNAME
@@ -1108,18 +1108,18 @@ def save_config():
 
     new_config['PUBLICHD'] = {}
     new_config['PUBLICHD']['publichd'] = int(PUBLICHD)
-    
+
     new_config['THEPIRATEBAY'] = {}
     new_config['THEPIRATEBAY']['thepiratebay'] = int(THEPIRATEBAY)
-    new_config['THEPIRATEBAY']['thepiratebay_trusted'] = int(THEPIRATEBAY_TRUSTED)    
+    new_config['THEPIRATEBAY']['thepiratebay_trusted'] = int(THEPIRATEBAY_TRUSTED)
     new_config['THEPIRATEBAY']['thepiratebay_proxy'] = int(THEPIRATEBAY_PROXY)
     new_config['THEPIRATEBAY']['thepiratebay_proxy_url'] = THEPIRATEBAY_PROXY_URL
-    
+
     new_config['DTT'] = {}
     new_config['DTT']['dtt'] = int(DTT)
     new_config['DTT']['dtt_norar'] = int(DTT_NORAR)
     new_config['DTT']['dtt_single'] = int(DTT_SINGLE)
-    
+
     new_config['BTN'] = {}
     new_config['BTN']['btn'] = int(BTN)
     new_config['BTN']['btn_api_key'] = BTN_API_KEY
@@ -1158,7 +1158,7 @@ def save_config():
     new_config['NZBget']['nzbget_password'] = NZBGET_PASSWORD
     new_config['NZBget']['nzbget_category'] = NZBGET_CATEGORY
     new_config['NZBget']['nzbget_host'] = NZBGET_HOST
-    
+
     new_config['TORRENT'] = {}
     new_config['TORRENT']['torrent_username'] = TORRENT_USERNAME
     new_config['TORRENT']['torrent_password'] = TORRENT_PASSWORD
