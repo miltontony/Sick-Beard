@@ -1,8 +1,5 @@
-# Modified by: Marcos Almeida Jr. <junalmeida@gmail.com>
+# Author: Marcos Almeida Jr. <junalmeida@gmail.com>
 # URL: https://github.com/junalmeida/Sick-Beard
-#
-# Author: Nic Wolfe <nic@wolfeden.ca>
-# URL: http://code.google.com/p/sickbeard/
 #
 # This file is part of Sick Beard.
 #
@@ -45,7 +42,7 @@ class KICKASSProvider(generic.TorrentProvider):
 
         self.cache = KICKASSCache(self)
 
-        self.url = 'http://www.kat.ph/'
+        self.url = 'http://kat.ph/'
 
     def isEnabled(self):
         return sickbeard.KICKASS
@@ -121,6 +118,7 @@ class KICKASSProvider(generic.TorrentProvider):
                 try:
                     data = self.getURL(searchURL + "&page=%(page)d" % {'page': index })
                     if data and data.startswith("<?xml"):
+                        data = self.sanitiseXml(data)
                         responseSoup = etree.ElementTree(etree.XML(data))
                         newItems = responseSoup.getiterator('item')
                         oldCount = len(items)
@@ -163,7 +161,9 @@ class KICKASSProvider(generic.TorrentProvider):
         if match:
             return match.group(1)
         return None
-    
+    def sanitiseXml(self, data):
+        regex = re.compile('<content\:encoded>.*?<\/content\:encoded>', flags = re.S)
+        return regex.sub("", data)
 
         
 class KICKASSCache(tvcache.TVCache):
@@ -181,6 +181,7 @@ class KICKASSCache(tvcache.TVCache):
         #logger.log(u"KICKASS cache update URL: " + url)
 
         data = self.provider.getURL(url)
+        data = self.provider.sanitiseXml(data)
         return data
     
     def _parseItem(self, item):

@@ -1011,9 +1011,9 @@ class ConfigProviders:
  					  btn_api_key=None,
                       newzbin_username=None, newzbin_password=None,
                       thepiratebay_trusted=None, thepiratebay_proxy=None, thepiratebay_proxy_url=None,
-                      dtt_norar = None, dtt_single = None,
+                      dtt_norar = None, dtt_single = None, 
                       torrentleech_username = None, torrentleech_password = None,
-                      torrentday_username = None, torrentday_password = None, torrentday_rsshash = None, torrentday_uid = None,
+                      torrentday_username = None, torrentday_password = None, torrentday_rsshash = None, torrentday_uid = None, 
                       torrentz_verified = None,
                       provider_order=None):
 
@@ -1079,7 +1079,7 @@ class ConfigProviders:
             elif curProvider == 'torrentz':
                 sickbeard.TORRENTZ = curEnabled
             elif curProvider == 'thepiratebay':
-                sickbeard.THEPIRATEBAY = curEnabled
+                sickbeard.THEPIRATEBAY = curEnabled 
             elif curProvider == 'tvtorrents':
                 sickbeard.TVTORRENTS = curEnabled
             elif curProvider == 'dailytvtorrents':
@@ -1100,6 +1100,7 @@ class ConfigProviders:
         sickbeard.TVTORRENTS_DIGEST = tvtorrents_digest.strip()
         sickbeard.TVTORRENTS_HASH = tvtorrents_hash.strip()
 
+        
         if thepiratebay_trusted == "on":
             thepiratebay_trusted = 1
         else:
@@ -1107,14 +1108,17 @@ class ConfigProviders:
 
         sickbeard.THEPIRATEBAY_TRUSTED = thepiratebay_trusted
 
-        if thepiratebay_proxy == "on":
+        
+        if thepiratebay_proxy == "on": 
             thepiratebay_proxy = 1
             sickbeard.THEPIRATEBAY_PROXY_URL = thepiratebay_proxy_url.strip()
         else:
             thepiratebay_proxy = 0
             sickbeard.THEPIRATEBAY_PROXY_URL = ""
 
-        sickbeard.THEPIRATEBAY_PROXY = thepiratebay_proxy
+            
+        sickbeard.THEPIRATEBAY_PROXY = thepiratebay_proxy    
+        
 
         if dtt_norar == "on":
             dtt_norar = 1
@@ -1123,6 +1127,7 @@ class ConfigProviders:
 
         sickbeard.DTT_NORAR = dtt_norar
 
+            
         if dtt_single == "on":
             dtt_single = 1
         else:
@@ -1130,14 +1135,17 @@ class ConfigProviders:
 
         sickbeard.DTT_SINGLE = dtt_single
 
+        
         sickbeard.TORRENTLEECH_USERNAME = torrentleech_username
         sickbeard.TORRENTLEECH_PASSWORD = torrentleech_password
 
+        
         sickbeard.TORRENTDAY_USERNAME = torrentday_username
         sickbeard.TORRENTDAY_PASSWORD = torrentday_password
         sickbeard.TORRENTDAY_RSSHASH = torrentday_rsshash
         sickbeard.TORRENTDAY_UID = torrentday_uid
 
+            
         if torrentz_verified == "on":
             torrentz_verified = 1
         else:
@@ -1145,10 +1153,12 @@ class ConfigProviders:
 
         sickbeard.TORRENTZ_VERIFIED = torrentz_verified
 
+        
         sickbeard.BTN_API_KEY = btn_api_key.strip()
 
         sickbeard.NZBSRUS_UID = nzbs_r_us_uid.strip()
         sickbeard.NZBSRUS_HASH = nzbs_r_us_hash.strip()
+
 
         sickbeard.PROVIDER_ORDER = provider_list
 
@@ -1163,6 +1173,7 @@ class ConfigProviders:
             ui.notifications.message('Configuration Saved', ek.ek(os.path.join, sickbeard.CONFIG_FILE) )
 
         redirect("/config/providers/")
+
 
 class ConfigNotifications:
 
@@ -1211,6 +1222,7 @@ class ConfigNotifications:
             xbmc_update_full = 1
         else:
             xbmc_update_full = 0
+
 
         if use_xbmc == "on":
             use_xbmc = 1
@@ -1332,6 +1344,7 @@ class ConfigNotifications:
         else:
             use_synoindex = 0
 
+
         if use_trakt == "on":
             use_trakt = 1
         else:
@@ -1432,6 +1445,7 @@ class ConfigNotifications:
         sickbeard.NMJ_MOUNT = nmj_mount
 
         sickbeard.USE_SYNOINDEX = use_synoindex
+
 
         sickbeard.USE_TRAKT = use_trakt
         sickbeard.TRAKT_USERNAME = trakt_username
@@ -2012,6 +2026,7 @@ class Home:
         if not host.endswith("/"):
             host = host + "/"
 
+        
         if torrent_method == 'utorrent':
             connection, accesMsg = utorrent.testAuthentication(host, username, password)
         elif torrent_method == 'transmission':
@@ -2019,7 +2034,8 @@ class Home:
         elif torrent_method == 'downloadstation':
             connection, accesMsg = downloadstation.testAuthentication(host, username, password)
 
-        return accesMsg
+        return accesMsg   
+    
 
     @cherrypy.expose
     def testGrowl(self, host=None, password=None):
@@ -2509,6 +2525,7 @@ class Home:
         # TODO: configure that each host can have different options / username / pw
         # only send update to first host in the list -- workaround for xbmc sql backend users
         firstHost = sickbeard.XBMC_HOST.split(",")[0].strip()
+
         if notifiers.xbmc_notifier.update_library(showName=showName):
             ui.notifications.message("Library update command sent to XBMC host: " + firstHost)
         else:
