@@ -29,7 +29,10 @@ __all__ = ['ezrss',
            'thepiratebay',
            'torrentleech',
            'publichd',
-           'torrentday'
+           'torrentday',
+           'sceneaccess',
+           'iptorrents',
+           'bithdtv'
            ]
 
 import sickbeard
