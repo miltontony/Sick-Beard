@@ -147,6 +147,7 @@ NZB_METHOD = None
 NZB_DIR = None
 USENET_RETENTION = None
 DOWNLOAD_PROPERS = None
+PREFER_EPISODE_RELEASES = None
 
 SEARCH_FREQUENCY = None
 BACKLOG_SEARCH_FREQUENCY = 21
@@ -164,6 +165,7 @@ THEPIRATEBAY = False
 THEPIRATEBAY_TRUSTED = False
 THEPIRATEBAY_PROXY = False
 THEPIRATEBAY_PROXY_URL = None
+THEPIRATEBAY_URL_OVERRIDE = None
 
 TVTORRENTS = False
 TVTORRENTS_DIGEST = None
@@ -198,6 +200,7 @@ IPTORRENTS_RSSHASH = None
 BITHDTV = False
 BITHDTV_USERNAME = None
 BITHDTV_PASSWORD = None
+
 PUBLICHD = False
 
 BTN = False
@@ -370,7 +373,7 @@ def initialize(consoleLogging=True):
     with INIT_LOCK:
 
         global LOG_DIR, WEB_PORT, WEB_LOG, WEB_ROOT, WEB_USERNAME, WEB_PASSWORD, WEB_HOST, WEB_IPV6, USE_API, API_KEY, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, \
-                USE_NZBS, USE_TORRENTS, NZB_METHOD, NZB_DIR,TORRENT_METHOD, DOWNLOAD_PROPERS, \
+                USE_NZBS, USE_TORRENTS, NZB_METHOD, NZB_DIR,TORRENT_METHOD, DOWNLOAD_PROPERS, PREFER_EPISODE_RELEASES, \
                 SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_HOST, \
                 TORRENT_USERNAME, TORRENT_PASSWORD, TORRENT_HOST, TORRENT_PATH, TORRENT_RATIO, TORRENT_PAUSED, \
                 NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_HOST, currentSearchScheduler, backlogSearchScheduler, \
@@ -387,7 +390,9 @@ def initialize(consoleLogging=True):
                 IPTORRENTS, IPTORRENTS_USERNAME, IPTORRENTS_PASSWORD, IPTORRENTS_UID, IPTORRENTS_RSSHASH, \
                 BITHDTV, BITHDTV_USERNAME, BITHDTV_PASSWORD, \
                 PUBLICHD, \
-                NZBS, NZBS_UID, NZBS_HASH, EZRSS, DTT, DTT_NORAR, DTT_SINGLE, THEPIRATEBAY, THEPIRATEBAY_TRUSTED, THEPIRATEBAY_PROXY, THEPIRATEBAY_PROXY_URL, TVTORRENTS, TVTORRENTS_DIGEST, TVTORRENTS_HASH, BTN, BTN_API_KEY, TORRENT_DIR, USENET_RETENTION, SOCKET_TIMEOUT, \
+                NZBS, NZBS_UID, NZBS_HASH, EZRSS, DTT, DTT_NORAR, DTT_SINGLE, \
+                THEPIRATEBAY, THEPIRATEBAY_TRUSTED, THEPIRATEBAY_PROXY, THEPIRATEBAY_PROXY_URL, THEPIRATEBAY_URL_OVERRIDE, \
+                TVTORRENTS, TVTORRENTS_DIGEST, TVTORRENTS_HASH, BTN, BTN_API_KEY, TORRENT_DIR, USENET_RETENTION, SOCKET_TIMEOUT, \
                 SEARCH_FREQUENCY, DEFAULT_SEARCH_FREQUENCY, BACKLOG_SEARCH_FREQUENCY, \
                 QUALITY_DEFAULT, FLATTEN_FOLDERS_DEFAULT, STATUS_DEFAULT, \
                 GROWL_NOTIFY_ONSNATCH, GROWL_NOTIFY_ONDOWNLOAD, TWITTER_NOTIFY_ONSNATCH, TWITTER_NOTIFY_ONDOWNLOAD, \
@@ -503,6 +508,7 @@ def initialize(consoleLogging=True):
         if TORRENT_METHOD not in ('blackhole', 'utorrent', 'transmission', 'downloadstation'):
             TORRENT_METHOD = 'blackhole'
         DOWNLOAD_PROPERS = bool(check_setting_int(CFG, 'General', 'download_propers', 1))
+        PREFER_EPISODE_RELEASES = bool(check_setting_int(CFG, 'General', 'prefer_episode_releases', 0))
         USENET_RETENTION = check_setting_int(CFG, 'General', 'usenet_retention', 500)
         SEARCH_FREQUENCY = check_setting_int(CFG, 'General', 'search_frequency', DEFAULT_SEARCH_FREQUENCY)
         if SEARCH_FREQUENCY < MIN_SEARCH_FREQUENCY:
@@ -533,6 +539,7 @@ def initialize(consoleLogging=True):
         THEPIRATEBAY_TRUSTED = bool(check_setting_int(CFG, 'THEPIRATEBAY', 'thepiratebay_trusted', 0))         
         THEPIRATEBAY_PROXY = bool(check_setting_int(CFG, 'THEPIRATEBAY', 'thepiratebay_proxy', 0))
         THEPIRATEBAY_PROXY_URL = check_setting_str(CFG, 'THEPIRATEBAY', 'thepiratebay_proxy_url', '')
+        THEPIRATEBAY_URL_OVERRIDE = check_setting_str(CFG, 'THEPIRATEBAY', 'thepiratebay_url_override', '')
 
         BTN = bool(check_setting_int(CFG, 'BTN', 'btn', 0))    
         BTN_API_KEY = check_setting_str(CFG, 'BTN', 'btn_api_key', '')
@@ -1102,6 +1109,7 @@ def save_config():
     new_config['General']['usenet_retention'] = int(USENET_RETENTION)
     new_config['General']['search_frequency'] = int(SEARCH_FREQUENCY)
     new_config['General']['download_propers'] = int(DOWNLOAD_PROPERS)
+    new_config['General']['prefer_episode_releases'] = int(PREFER_EPISODE_RELEASES)
     new_config['General']['quality_default'] = int(QUALITY_DEFAULT)
     new_config['General']['status_default'] = int(STATUS_DEFAULT)
     new_config['General']['flatten_folders_default'] = int(FLATTEN_FOLDERS_DEFAULT)
@@ -1166,6 +1174,7 @@ def save_config():
     new_config['TORRENTDAY']['torrentday_password'] = TORRENTDAY_PASSWORD
     new_config['TORRENTDAY']['torrentday_rsshash'] = TORRENTDAY_RSSHASH
     new_config['TORRENTDAY']['torrentday_uid'] = TORRENTDAY_UID
+
     new_config['SCENEACCESS'] = {}
     new_config['SCENEACCESS']['sceneaccess'] = int(SCENEACCESS)
     new_config['SCENEACCESS']['sceneaccess_username'] = SCENEACCESS_USERNAME
@@ -1192,6 +1201,7 @@ def save_config():
     new_config['THEPIRATEBAY']['thepiratebay_trusted'] = int(THEPIRATEBAY_TRUSTED)    
     new_config['THEPIRATEBAY']['thepiratebay_proxy'] = int(THEPIRATEBAY_PROXY)
     new_config['THEPIRATEBAY']['thepiratebay_proxy_url'] = THEPIRATEBAY_PROXY_URL
+    new_config['THEPIRATEBAY']['thepiratebay_url_override'] = THEPIRATEBAY_URL_OVERRIDE
     
     new_config['DTT'] = {}
     new_config['DTT']['dtt'] = int(DTT)
