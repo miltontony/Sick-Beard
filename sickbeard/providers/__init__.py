@@ -17,6 +17,7 @@
 # along with Sick Beard.  If not, see <http://www.gnu.org/licenses/>.
 
 __all__ = ['ezrss',
+           'hdbits',
            'tvtorrents',
            'nzbsrus',
            'womble',
@@ -33,7 +34,9 @@ __all__ = ['ezrss',
            'sceneaccess',
            'iptorrents',
            'bithdtv',
-           'fucklimits'
+           'fucklimits',
+           'btdigg',
+           'torrentshack'
            ]
 
 import sickbeard
