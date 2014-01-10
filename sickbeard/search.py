@@ -39,7 +39,6 @@ from sickbeard import providers
 from sickbeard.exceptions import ex
 from sickbeard.providers.generic import GenericProvider
 
-import urllib
 import urllib2
 
 def _downloadResult(result):
@@ -90,9 +89,6 @@ def _downloadResult(result):
         logger.log(u"Invalid provider type - this is a coding error, report it please", logger.ERROR)
         return False
 
-    if newResult:
-        ui.notifications.message('Episode snatched','<b>%s</b> snatched from <b>%s</b>' % (result.name, resProvider.name))
-
     return newResult
 
 def snatchEpisode(result, endStatus=SNATCHED):
@@ -129,13 +125,13 @@ def snatchEpisode(result, endStatus=SNATCHED):
                     urllib2.urlopen(url)
                     result.url = url
                     break
-                except Exception, e:
+                except Exception:
                     continue 
             
         # torrents are always saved to disk
         if sickbeard.TORRENT_METHOD == "blackhole": 
             dlResult = _downloadResult(result)
-       # torrents are sending to torrent client
+        # torrents are sending to torrent client
         elif sickbeard.TORRENT_METHOD == "utorrent":
             dlResult = utorrent.sendTORRENT(result)
         elif sickbeard.TORRENT_METHOD == "transmission":
@@ -150,6 +146,8 @@ def snatchEpisode(result, endStatus=SNATCHED):
 
     if dlResult == False:
         return False
+
+    ui.notifications.message('Episode snatched', result.name)
 
     history.logSnatch(result)
 
